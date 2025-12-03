@@ -48,19 +48,21 @@ Agente automatizado de cotação de dólar integrado com WhatsApp que permite ao
   - Switch/Filter (roteamento de fluxo)
 
 ### **Supabase** - Backend as a Service
-- **Função**: Banco de dados PostgreSQL hospedado
+- **Função**: Banco de dados PostgreSQL hospedado + Gerenciamento de timer
 - **Tabelas criadas**:
   - `Leads`: Cadastro de clientes
-  - `n8n_cotacao`: Controle de cotações com timestamp
-
-### **PostgreSQL**
-- **Função**: Banco de dados relacional
-- **Provider**: Supabase
+  - `n8n_cotacao`: **Controle de cotações com timestamp (timer de 10 segundos)**
 - **Recursos usados**:
   - Tabelas relacionais
   - Queries com filtros
   - Operações CRUD
-  - Cálculos de tempo (Date & Time)
+  - **Armazenamento de timestamp para validação de expiração**
+
+### **PostgreSQL** (Externo - para IA)
+- **Função**: Apenas para memória conversacional da IA
+- **Tabela**: `n8n_chat_histories` (gerenciada automaticamente pelo LangChain)
+- **Uso específico**: Postgres Chat Memory (histórico de conversas por telefone)
+- **Nota**: NÃO usado para timer ou cotações
 
 ### **API Coopfy**
 - **Endpoint**: `https://coopfy.com/api/usdt/price?spread=0.00498`
@@ -281,17 +283,21 @@ CREATE TABLE IF NOT EXISTS "Leads" (
 );
 ```
 
-#### 1.2 Criar tabela `n8n_cotacao`
+#### 1.2 Criar tabela `n8n_cotacao` (TIMER DE EXPIRAÇÃO)
 ```sql
 CREATE TABLE IF NOT EXISTS "n8n_cotacao" (
     "id" BIGSERIAL PRIMARY KEY,
     "Telefone" VARCHAR(20) UNIQUE NOT NULL,
-    "horarioSolicitacao" TIMESTAMPTZ NOT NULL,
+    "horarioSolicitacao" TIMESTAMPTZ NOT NULL, -- Momento que cliente pediu cotação
     "created_at" TIMESTAMPTZ DEFAULT NOW(),
     "updated_at" TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_cotacao_telefone ON n8n_cotacao("Telefone");
+
+-- Esta tabela é usada APENAS para controlar o timer de 10 segundos
+-- O n8n busca o horarioSolicitacao, calcula a diferença com $now
+-- Se passou mais de 10 segundos, cotação expirou
 ```
 
 #### 1.3 Obter credenciais Supabase
@@ -326,11 +332,13 @@ CREATE INDEX idx_cotacao_telefone ON n8n_cotacao("Telefone");
 - Nome: `Groq account`
 - API Key: Obter em https://console.groq.com
 
-**PostgreSQL (para chat memory):**
-- Host: `db.seu-projeto.supabase.co`
+**PostgreSQL (APENAS para memória da IA):**
+- Host: `db.seu-projeto-postgres.supabase.co` (ou servidor externo)
 - Database: `postgres`
 - User: `postgres`
-- Password: obtido no Supabase
+- Password: obtido no provedor PostgreSQL
+- **Uso**: Somente para `n8n_chat_histories` (LangChain Memory)
+- **Nota**: Timer/cotações usam Supabase, NÃO este PostgreSQL
 
 **UAZApi (WhatsApp):**
 - Token: configurado no header dos nós HTTP Request
@@ -394,27 +402,68 @@ No nó **Filter1**, edite os telefones permitidos:
 └──────────────┴──────────┴────────────┘
 ```
 
-### Tabela: `n8n_cotacao`
+### Tabela: `n8n_cotacao` (Supabase - TIMER)
 ```
-┌────────────────────────────────────────────┐
-│ n8n_cotacao                                │
-├────────────────────┬──────────┬────────────┤
-│ Campo              │ Tipo     │ Descrição  │
-├────────────────────┼──────────┼────────────┤
-│ id                 │ BIGSERIAL│ PK auto    │
-│ Telefone           │ VARCHAR  │ Único      │
-│ horarioSolicitacao │ TIMESTAMP│ Momento    │
-│ created_at         │ TIMESTAMP│ Criação    │
-│ updated_at         │ TIMESTAMP│ Atualizado │
-└────────────────────┴──────────┴────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ n8n_cotacao (SUPABASE)                                      │
+├────────────────────┬──────────┬─────────────────────────────┤
+│ Campo              │ Tipo     │ Descrição                   │
+├────────────────────┼──────────┼─────────────────────────────┤
+│ id                 │ BIGSERIAL│ PK auto                     │
+│ Telefone           │ VARCHAR  │ Único (chave)               │
+│ horarioSolicitacao │ TIMESTAMP│ Quando pediu cotação        │
+│ created_at         │ TIMESTAMP│ Criação                     │
+│ updated_at         │ TIMESTAMP│ Atualizado                  │
+└────────────────────┴──────────┴─────────────────────────────┘
 
 Índice: idx_cotacao_telefone (Telefone)
+
+FUNÇÃO: Controlar timer de 10 segundos
+- Salva timestamp quando cliente pede "cotacao"
+- n8n busca e calcula: $now - horarioSolicitacao
+- Se > 10 segundos: EXPIRADO
+- Se <= 10 segundos: PODE FECHAR
+```
+
+### Tabela: `n8n_chat_histories` (PostgreSQL - MEMÓRIA IA)
+```
+┌─────────────────────────────────────────────────────────────┐
+│ n8n_chat_histories (POSTGRES EXTERNO)                       │
+├────────────────────┬──────────┬─────────────────────────────┤
+│ Campo              │ Tipo     │ Descrição                   │
+├────────────────────┼──────────┼─────────────────────────────┤
+│ session_id         │ VARCHAR  │ Telefone do cliente         │
+│ message            │ TEXT     │ Mensagem (user/assistant)   │
+│ created_at         │ TIMESTAMP│ Timestamp                   │
+└────────────────────┴──────────┴─────────────────────────────┘
+
+FUNÇÃO: Histórico de conversas com IA
+- Gerenciada automaticamente pelo LangChain
+- Usado pelo nó "Postgres Chat Memory"
+- NÃO tem relação com timer/cotações
 ```
 
 ### Relacionamentos
 ```
-Leads.Telefone ←→ n8n_cotacao.Telefone
-(Relação 1:1 - Um lead, uma cotação ativa)
+┌─────────────────────────────────────────────────────────────┐
+│                     SEPARAÇÃO DE BANCOS                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  SUPABASE (Timer + Leads)          POSTGRES (Memória IA)   │
+│  ┌─────────────────┐               ┌──────────────────┐    │
+│  │ Leads           │               │ n8n_chat_        │    │
+│  │ - Telefone (PK) │               │   histories      │    │
+│  └────────┬────────┘               │ - session_id     │    │
+│           │                        │ - message        │    │
+│           │ 1:1                    └──────────────────┘    │
+│  ┌────────▼────────┐                                       │
+│  │ n8n_cotacao     │               Usado por:              │
+│  │ - Telefone (FK) │               • Postgres Chat Memory │
+│  │ - horarioSolic. │◄──── TIMER    • Agente Cotação       │
+│  └─────────────────┘                                       │
+│                                                              │
+│  Função: Validar 10 segundos                                │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -504,23 +553,31 @@ return [{
 
 ---
 
-### Nó: Date & Time
+### Nó: Date & Time (Validação de Timer)
 
-**Função**: Calcula diferença de tempo
+**Função**: Calcula diferença de tempo entre solicitação e fechamento
 
 **Configuração:**
-- Start Date: `{{ $json.horarioSolicitacao }}`
-- End Date: `{{ $now }}`
+- Start Date: `{{ $json.horarioSolicitacao }}` (vem do Supabase: n8n_cotacao)
+- End Date: `{{ $now }}` (momento atual do n8n)
 - Units: `second`
+
+**Fluxo:**
+1. Cliente pede "cotacao" → Supabase salva timestamp em `horarioSolicitacao`
+2. Cliente diz "fechar 2k" → n8n busca `horarioSolicitacao` do Supabase
+3. Date & Time calcula: `$now - horarioSolicitacao`
+4. Switch7 verifica se passou 10 segundos
 
 **Output:**
 ```json
 {
   "timeDifference": {
-    "seconds": 8
+    "seconds": 8  // Se 8s: VÁLIDO | Se 12s: EXPIRADO
   }
 }
 ```
+
+**Observação:** O Supabase é usado apenas para ARMAZENAR o timestamp. O cálculo de diferença é feito pelo n8n com o nó Date & Time.
 
 ---
 
@@ -667,16 +724,32 @@ Digite *cotacao* para receber o valor atualizado do dólar. 💵
 - Ver: Cada execução do workflow
 - Debug: Inspecionar dados entre nós
 
-### Verificar tabela Supabase
+### Verificar tabelas
+
+**Supabase (Timer + Leads):**
 ```sql
--- Ver todas as cotações ativas
-SELECT * FROM n8n_cotacao
-ORDER BY horarioSolicitacao DESC
+-- Ver todas as cotações ativas (timer)
+SELECT
+  "Telefone",
+  "horarioSolicitacao",
+  EXTRACT(EPOCH FROM (NOW() - "horarioSolicitacao")) as segundos_passados
+FROM n8n_cotacao
+ORDER BY "horarioSolicitacao" DESC
 LIMIT 10;
 
 -- Ver leads cadastrados
 SELECT * FROM "Leads"
 ORDER BY created_at DESC;
+```
+
+**PostgreSQL (Memória IA):**
+```sql
+-- Ver histórico de conversas
+SELECT session_id, message, created_at
+FROM n8n_chat_histories
+WHERE session_id = '5511958988854'  -- telefone do cliente
+ORDER BY created_at DESC
+LIMIT 20;
 ```
 
 ### Testar API manualmente
@@ -706,7 +779,11 @@ curl https://coopfy.com/api/usdt/price?spread=0.00498
 **Solução:** Verificar credenciais UAZApi no nó EnviarCotacao
 
 ### Problema: Sempre diz "expirado"
-**Solução:** Verificar timezone do Supabase e n8n (usar UTC)
+**Solução:**
+1. Verificar se o Supabase está salvando `horarioSolicitacao` corretamente
+2. Testar query: `SELECT NOW(), horarioSolicitacao FROM n8n_cotacao`
+3. Verificar timezone do Supabase (deve usar TIMESTAMPTZ)
+4. Confirmar que o nó Date & Time está lendo do Supabase corretamente
 
 ### Problema: Google Sheets não registra
 **Solução:** Reautorizar OAuth2 do Google
