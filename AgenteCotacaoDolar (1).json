@@ -1,0 +1,1325 @@
+{
+  "name": "AgenteCotacaoDolar",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const variaveis = $('Variaveis').first().json;\nconst mensagem = variaveis.Mensagem.toLowerCase();\n\n// Extrai o valor da mensagem (ex: \"fechar 100k\" -> \"100k\")\nconst matchValor = mensagem.match(/fechar\\s+([0-9.]+[km]?)/i);\n\nif (!matchValor) {\n  // Se não encontrou valor, retorna erro\n  return [{\n    json: {\n      erro: true,\n      valorTexto: \"0\",\n      valorNumerico: 0\n    }\n  }];\n}\n\nconst valorTexto = matchValor[1];\n\n// Converte valor (100k -> 100000, 2.5k -> 2500)\nlet valorNumerico;\nif (valorTexto.toLowerCase().endsWith('k')) {\n  valorNumerico = parseFloat(valorTexto) * 1000;\n} else if (valorTexto.toLowerCase().endsWith('m')) {\n  valorNumerico = parseFloat(valorTexto) * 1000000;\n} else {\n  valorNumerico = parseFloat(valorTexto);\n}\n\nreturn [{\n  json: {\n    erro: false,\n    valorTexto: valorTexto,\n    valorNumerico: valorNumerico,\n    ...variaveis\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        2176
+      ],
+      "id": "db3783a0-1578-4f90-af7f-658c7f17fc8a",
+      "name": "ExtrairValor",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a73b7d48-4261-41a2-9e09-450d7e04e496",
+              "leftValue": "={{ $json.body.message.sender.split('@')[0] }}",
+              "rightValue": "5511958988854",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "7a6d1ff7-e5ed-4286-ac77-1652d907ef1d",
+              "leftValue": "={{ $json.body.message.sender.split('@')[0] }}",
+              "rightValue": "553173591394",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -2944,
+        2096
+      ],
+      "id": "f99d8ce1-88f4-41b8-8310-10518845862b",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "18sKH4AFq3DN-L0eB1smxX0Fm2EzOB_ugTTRj65vglC8",
+          "mode": "list",
+          "cachedResultName": "Dolar Comprado",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18sKH4AFq3DN-L0eB1smxX0Fm2EzOB_ugTTRj65vglC8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18sKH4AFq3DN-L0eB1smxX0Fm2EzOB_ugTTRj65vglC8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Preço Dolar": "={{ $('BuscarCotacao5').item.json.data.dollarOTC }}",
+            "Valor Compra": "={{ $('ExtrairValor').item.json.valorNumerico }}",
+            "Telefone Vendedor": "={{ $('ExtrairValor').item.json.TelefoneRecebedor }}",
+            "Telefone Comprador": "={{ $('ExtrairValor').item.json.TelefoneLead }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefone Comprador",
+              "displayName": "Telefone Comprador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefone Vendedor",
+              "displayName": "Telefone Vendedor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Valor Compra",
+              "displayName": "Valor Compra",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preço Dolar",
+              "displayName": "Preço Dolar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -192,
+        2176
+      ],
+      "id": "f2199569-86ac-4e9a-8575-7d51e51f8fea",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TZ2QXJSeiyGffgnJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://andradek.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "db784535-086a-4fd1-9e79-f57271d3129b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            },
+            {
+              "name": "text",
+              "value": "=✅ *Compra Fechada!*\n\nValor: *{{ $('ExtrairValor').item.json.valorTexto }}* (R$ {{ $('ExtrairValor').item.json.valorNumerico.toLocaleString('pt-BR') }})\nCotação: *R$ {{ $('BuscarCotacao5').item.json.data.dollarOTC }}*\nTotal em dólares: *${{ ($('ExtrairValor').item.json.valorNumerico / $('BuscarCotacao5').item.json.data.dollarOTC).toFixed(2) }}*\n\n🎉 Obrigado pela preferência!"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        2176
+      ],
+      "id": "d8477e04-7011-494b-afa6-e607f2c88c6e",
+      "name": "EnviaMensagem"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.isEmpty() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "1284c8fd-e45a-4e96-8cd7-6bbd6ff86c56"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Primeiro Contato"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c6dd46a8-5e19-4aff-ae2e-6fb24745932a",
+                    "leftValue": "={{ $json.isNotEmpty() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ja cadastrado"
+            }
+          ]
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -2240,
+        2096
+      ],
+      "id": "fe7e96f7-98f0-4275-8f62-3520383f2bbb",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Leads",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Telefone",
+              "condition": "eq",
+              "keyValue": "={{ $json.TelefoneLead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2464,
+        2096
+      ],
+      "id": "3eea0fa7-bef7-4f22-ae60-c5fcb0b150c2",
+      "name": "Get many rows2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "Leads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Nome",
+              "fieldValue": "={{ $('Variaveis').item.json.NomeLead }}"
+            },
+            {
+              "fieldId": "Telefone",
+              "fieldValue": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        2048
+      ],
+      "id": "b3819a25-0f2d-45ed-a7b2-09a1169f580a",
+      "name": "Create a row2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a65ebaff-6e8f-4458-bdb9-35c7c3fcf203",
+              "name": "dados",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "10ae54fa-5ffc-41e9-8153-56c6f6194cbb",
+              "name": "Mensagem",
+              "value": "={{ $json.body.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "99fd4475-cae5-4fdf-acf6-2bfcd1d67269",
+              "name": "TelefoneLead",
+              "value": "={{ $json.body.message.sender.split('@')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "97f7dc37-f850-4a66-9948-fe951513f1ff",
+              "name": "NomeLead",
+              "value": "={{ $json.body.message.senderName }}",
+              "type": "string"
+            },
+            {
+              "id": "61f45728-e20b-4417-ad8c-0c55f3f7235d",
+              "name": "HoraMensagem",
+              "value": "={{ new Date($json.body.message.messageTimestamp).toLocaleString(\"pt-BR\", { timeZone: \"America/Sao_Paulo\" }) }}",
+              "type": "string"
+            },
+            {
+              "id": "61f45728-e20b-4417-ad8c-0c55f3f7235e",
+              "name": "TimestampNumero",
+              "value": "={{ $json.body.message.messageTimestamp }}",
+              "type": "number"
+            },
+            {
+              "id": "e57dd9f7-6d2b-4494-9c9f-0462dd480f1a",
+              "name": "TelefoneRecebedor",
+              "value": "={{ $json.body.owner }}",
+              "type": "string"
+            },
+            {
+              "id": "d2c24a99-d7ed-45e1-914f-8300653dd301",
+              "name": "NomeVendedor",
+              "value": "={{ $json.body.chat.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2688,
+        2096
+      ],
+      "id": "afae35c6-f0b4-46f0-915c-f1536086a3b0",
+      "name": "Variaveis"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Mensagem do cliente: {{ $json.mensagem }}\n",
+        "options": {
+          "systemMessage": "Você é um assistente de cotação de dólar. IMPORTANTE:\n\n1. Seja EXTREMAMENTE conciso - máximo 2-3 linhas\n2. Use apenas informações diretas, sem enrolação\n3. Para cotações: informe apenas o valor em formato \"Dólar: R$ X.XX\"\n4. Para outras perguntas: responda de forma direta em no máximo 2 frases\n5. NUNCA repita informações ou faça textos longos\n\nExemplos de respostas boas:\n- \"Dólar agora: R$ 6.15\"\n- \"Sim, aceitamos pagamento via PIX\"\n- \"Horário de atendimento: 9h às 18h\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1360,
+        2320
+      ],
+      "id": "87e7ff12-3442-42c3-bc15-a7004023f924",
+      "name": "Agente Cotação"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Variaveis').item.json.TelefoneLead }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -1248,
+        2544
+      ],
+      "id": "9c7f031f-c1f0-4d86-85f6-b83f25dd34ec",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "ao9X9BqeQekEVYq2",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1376,
+        2544
+      ],
+      "id": "89da6061-3cbf-4d41-ab5c-a9c4f669119a",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "2j1EpG8bKacYsaIm",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Variaveis').item.json.Mensagem.toLowerCase().trim() }}",
+                    "rightValue": "=cotacao",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "e073ed41-5df7-4ab4-9182-a9c97b7c400c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Solicitar Cotacao"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1ec994f4-d9f0-4521-96cd-b72cf9ae8cc1",
+                    "leftValue": "={{ $('Variaveis').item.json.Mensagem.toLowerCase().includes('fechar') }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Tentar Fechar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2ec994f4-d9f0-4521-96cd-b72cf9ae8cc2",
+                    "leftValue": "={{ $('Variaveis').item.json.Mensagem }}",
+                    "rightValue": "cotacao",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notContains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Conversa Normal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1792,
+        2096
+      ],
+      "id": "6945ce91-ad04-4b17-8ddb-d4c3e0a969e2",
+      "name": "Switch5"
+    },
+    {
+      "parameters": {
+        "url": "https://coopfy.com/api/usdt/price?spread=0.00498",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1360,
+        1792
+      ],
+      "id": "bfe2f0af-6b45-4089-8eb7-5d5914c350d9",
+      "name": "BuscarCotacao3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://andradek.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "db784535-086a-4fd1-9e79-f57271d3129b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            },
+            {
+              "name": "text",
+              "value": "=💵 *Cotação do Dólar*\n\nValor: *R$ {{ $('BuscarCotacao3').item.json.data.dollarOTC }}*\n\n⏰ Válida por 10 segundos\n\nPara fechar, responda:\n*fechar [valor]*\n\nExemplo: fechar 100k"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        80,
+        1776
+      ],
+      "id": "195ea241-e089-4212-8ad9-cd464e16af5c",
+      "name": "EnviarCotacao"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://andradek.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "db784535-086a-4fd1-9e79-f57271d3129b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            },
+            {
+              "name": "text",
+              "value": "=  ⏱️ Essa cotação já expirou!\n\n  Digite *cotacao* para receber o valor atualizado do dólar. 💵\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -544,
+        2032
+      ],
+      "id": "4aa14837-4d0f-469f-b2a9-d33041cf7ba9",
+      "name": "EnviarErro"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Receba a cotação do dolar, traga a informação BRL",
+        "url": "https://coopfy.com/api/usdt/price?spread=0.00498",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -1120,
+        2544
+      ],
+      "id": "4b770f9e-a192-4010-a3ec-f2c9d039847c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://andradek.uazapi.com/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "db784535-086a-4fd1-9e79-f57271d3129b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -912,
+        2320
+      ],
+      "id": "ad46afcf-d8b4-4086-8357-497a5b82bc42",
+      "name": "EnviaMensagem3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f872b772-1fb0-49c8-8a63-7f2bb7e2e2b6",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -3184,
+        2096
+      ],
+      "id": "19475f0b-3c48-474e-875b-13f6b8b2c8e4",
+      "name": "Webhook",
+      "webhookId": "f872b772-1fb0-49c8-8a63-7f2bb7e2e2b6"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "n8n_cotacao",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Telefone",
+              "condition": "eq",
+              "keyValue": "={{ $json.Telefone }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "horarioSolicitacao",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        1680
+      ],
+      "id": "7c06daee-dc90-4d78-9056-1cbaf7d81937",
+      "name": "SalvarCotação2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "n8n_cotacao",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Telefone",
+              "condition": "eq",
+              "keyValue": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1056,
+        1792
+      ],
+      "id": "b35e40a2-56f7-4315-81b9-07b65f05a838",
+      "name": "Get many rows3",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.isEmpty() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "7fec8121-38e4-4d57-ac7c-f26aa985bb72"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Primeira cotação"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bb0de4e9-4fec-4a77-a202-b3274ed8190e",
+                    "leftValue": "={{ $json.isEmpty() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Já solicitou"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -752,
+        1792
+      ],
+      "id": "104a3424-1e74-483c-bac6-3cd498f85a35",
+      "name": "Switch6"
+    },
+    {
+      "parameters": {
+        "tableId": "n8n_cotacao",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "horarioSolicitacao",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "Telefone",
+              "fieldValue": "={{ $('Variaveis').item.json.TelefoneLead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        1680
+      ],
+      "id": "b1b1cc72-4197-46b1-8dd2-9bcd305e3da0",
+      "name": "Create a row3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "n8n_cotacao",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Telefone",
+              "condition": "eq",
+              "keyValue": "={{ $('Get many rows3').item.json.Telefone }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "horarioSolicitacao",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        1872
+      ],
+      "id": "d2461455-a924-43bd-a3e5-82781c6e7ecc",
+      "name": "SalvarCotação3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "n8n_cotacao",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Telefone",
+              "condition": "eq",
+              "keyValue": "={{ $json.Telefone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1360,
+        2112
+      ],
+      "id": "09ee5c4b-cef2-44cc-a309-7f4a5222f47b",
+      "name": "BuscarCotacao4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lTaMIx63HoncbUl5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://coopfy.com/api/usdt/price?spread=0.00498",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -368,
+        2176
+      ],
+      "id": "05bed975-9f70-4fc2-8f22-d1da12e8c9b1",
+      "name": "BuscarCotacao5"
+    },
+    {
+      "parameters": {
+        "operation": "getTimeBetweenDates",
+        "startDate": "={{ $json.horarioSolicitacao }}",
+        "endDate": "={{ $now }}",
+        "units": [
+          "second"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -1056,
+        2112
+      ],
+      "id": "fdef7a41-bc20-4a8a-aa4a-316c33b7ae4c",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.timeDifference.seconds }}",
+                    "rightValue": 10,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "4e57d731-c587-43f9-8423-6232360e3086"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Expirado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "51551a91-95fd-4485-945c-6cfea6a1f3c1",
+                    "leftValue": "={{ $json.timeDifference.seconds }}",
+                    "rightValue": 10,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Fechado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -816,
+        2112
+      ],
+      "id": "40c5c775-2017-41b9-a17e-20d8b42fe8cc",
+      "name": "Switch7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "ExtrairValor": {
+      "main": [
+        [
+          {
+            "node": "BuscarCotacao5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Variaveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "EnviaMensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "Create a row2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows2": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row2": {
+      "main": [
+        [
+          {
+            "node": "Switch5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variaveis": {
+      "main": [
+        [
+          {
+            "node": "Get many rows2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Cotação": {
+      "main": [
+        [
+          {
+            "node": "EnviaMensagem3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente Cotação",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Cotação",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch5": {
+      "main": [
+        [
+          {
+            "node": "BuscarCotacao3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BuscarCotacao4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente Cotação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BuscarCotacao3": {
+      "main": [
+        [
+          {
+            "node": "Get many rows3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Cotação",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SalvarCotação2": {
+      "main": [
+        [
+          {
+            "node": "EnviarCotacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows3": {
+      "main": [
+        [
+          {
+            "node": "Switch6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch6": {
+      "main": [
+        [
+          {
+            "node": "Create a row3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SalvarCotação3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row3": {
+      "main": [
+        [
+          {
+            "node": "SalvarCotação2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SalvarCotação3": {
+      "main": [
+        [
+          {
+            "node": "EnviarCotacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BuscarCotacao4": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BuscarCotacao5": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Switch7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch7": {
+      "main": [
+        [
+          {
+            "node": "EnviarErro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ExtrairValor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "523a3db2-c43d-49e4-a77e-fbc5a6dcb379",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "869ea8b301111d8b64c0cbf3eb672baf7d914c25ba5f281459682a5a517bcdf9"
+  },
+  "id": "LRpXBoUqVRGngvAN",
+  "tags": []
+}
